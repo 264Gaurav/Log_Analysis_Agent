@@ -1,4 +1,4 @@
-from langchain_nvidia_ai_endpoints import NVIDIARerank
+# from langchain_nvidia_ai_endpoints import NVIDIARerank
 from langchain_community.document_compressors import FlashrankRerank
 import os
 from multiagent import HybridRetriever
