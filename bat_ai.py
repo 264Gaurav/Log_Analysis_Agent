@@ -3,6 +3,10 @@ from graphnodes import Nodes
 from graphedges import Edge
 from typing_extensions import TypedDict
 from typing import List
+from logger import get_logger
+
+logger = get_logger(__name__)
+
 class GraphState(TypedDict):
     """
     A current Graph State
@@ -18,6 +22,7 @@ class GraphState(TypedDict):
     sub_questions:  List[str]
     generation: str
     documents: List[str]
+    transform_count: int
     """
     path : str
     question: str
@@ -58,3 +63,4 @@ bat_ai.add_conditional_edges(
 )
 
 app = bat_ai.compile()
+logger.info("stage=workflow event=compiled nodes=%s", ["retrieve", "rerank", "grade_documents", "generate", "transform_query"])

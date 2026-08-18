@@ -1,0 +1,2 @@
+2026-08-19 02:42:10,204 | INFO | run_id=startup | wrapper_check | stage=llm event=invoke_start operation=test_operation input={'question': {'characters': 12, 'sha256': '125051da7bc7', 'content': 'What failed?'}, 'context': [{'chunk_id': 'ee96050adb52', 'characters': 26, 'content': 'ERROR database unavailable'}]}
+2026-08-19 02:42:10,204 | INFO | run_id=startup | wrapper_check | stage=llm event=invoke_complete operation=test_operation elapsed_ms=0.4 output={'characters': 23, 'sha256': '4ee203ba5590', 'content': 'answer for What failed?'}

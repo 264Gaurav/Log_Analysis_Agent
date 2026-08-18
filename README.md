@@ -60,6 +60,25 @@ If `--question` is omitted, BAT.AI uses: `Analyze the log file and find the fail
 
 The final answer is printed after the graph has completed. Input files must be plain-text logs readable by LangChain's `TextLoader`.
 
+## Observability
+
+Each invocation writes to a timestamped file under `app_logs/` and to the console. Every record includes a request-scoped `run_id`, stage name, event, and (where applicable) elapsed time. Run lifecycle records include input file size and a short SHA-256 fingerprint, while question and rewritten-query fingerprints are logged without recording their contents.
+
+Useful events include `run_started`, `input_valid` or `input_invalid`, stage `start`/`complete`/`failed`, graph node updates, routing decisions, document counts, response length, and `run_completed` or `run_failed`. Set `LOG_LEVEL=DEBUG` or another standard Python logging level to change verbosity.
+
+Retrieval diagnostics also record the configured `RETRIEVAL_K`, BM25 and FAISS candidates, native component scores, chunk fingerprints and sizes, weighted RRF contributions, and the final fused ranking. The defaults are `RETRIEVAL_K=4`, `FAISS_SCORE_THRESHOLD=0.8`, `RRF_RANK_CONSTANT=60`, and equal BM25/FAISS weights. Set `LOG_QUERY_CONTENT=true` to log full questions, or set `LOG_CONTENT_PREVIEW_CHARS` to a positive value to include bounded chunk previews; both are disabled by default.
+
+Every LLM call emits `invoke_start`, `invoke_complete`, or `invoke_failed` with its operation name, elapsed time, input fields, and output. Inputs include the question/query, documents passed to the model, and generated answer when available. Content is fingerprinted by default. For a controlled debugging run, enable bounded payload visibility in PowerShell:
+
+```powershell
+$env:LOG_LLM_PAYLOADS="true"
+$env:LOG_LLM_PREVIEW_CHARS="1000"
+$env:LOG_QUERY_CONTENT="true"
+python example.py data/log-data.txt --question "What are the critical errors and warnings in the log file?"
+```
+
+The CLI also emits `graph_step` records with the node, question fingerprint, document count, and transform count, making query-rewrite loops and routing decisions easy to follow by `run_id`.
+
 ## Workflow
 
 ```text

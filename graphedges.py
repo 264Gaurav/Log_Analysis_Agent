@@ -1,4 +1,8 @@
 from utils import automation
+from logger import get_logger, invoke_with_logging, log_stage
+
+logger = get_logger(__name__)
+
 class Edge:
     def decide_to_generate(state):
         """
@@ -8,22 +12,18 @@ class Edge:
             str: Binary decision for next node to call
         """
 
-        print("ASSESS GRADED DOCUMENTS")
-        state["question"]
         filtered_documents = state["documents"]
         transform_count = state.get("transform_count", 0)
 
         # If we've transformed too many times, force generation
         if transform_count >= 2:
-            print("DECISION: MAX TRANSFORMS REACHED, FORCING GENERATION")
+            logger.info("stage=route_documents decision=generate reason=max_transforms transform_count=%d", transform_count)
             return "generate"
 
         if not filtered_documents:
-            print(
-                "DECISION: ALL DOCUMENTS ARE NOT RELEVANT TO QUESTION, TRANSFORM QUERY"
-            )
+            logger.info("stage=route_documents decision=transform_query reason=no_relevant_documents")
             return "transform_query"
-        print("---DECISION: GENERATE---")
+        logger.info("stage=route_documents decision=generate documents=%d", len(filtered_documents))
         return "generate"
         
     def grade_generation_vs_documents_and_question(state):
@@ -38,22 +38,24 @@ class Edge:
         documents = state["documents"]
         generation = state["generation"]
 
-        print("GRADE GENERATED vs QUESTION")
         try:
-            score_text = automation.answer_grader.invoke({"question": question, "generation": generation})
-            if "yes" in score_text.lower():
-                print("DECISION: GENERATION ADDRESSES QUESTION")
-                return "useful"
-            else:
-                # Check if we've transformed too many times
+            with log_stage(logger, "grade_generation", documents=len(documents)):
+                score_text = invoke_with_logging(
+                    logger,
+                    automation.answer_grader,
+                    "answer_grader",
+                    {"question": question, "generation": generation},
+                )
+                grade = getattr(score_text, "binary_score", str(score_text)).lower()
+                if grade == "yes":
+                    logger.info("stage=route_generation decision=useful grade=%s", grade)
+                    return "useful"
                 transform_count = state.get("transform_count", 0)
                 if transform_count >= 2:
-                    print("DECISION: MAX TRANSFORMS REACHED, ACCEPTING GENERATION")
+                    logger.info("stage=route_generation decision=useful reason=max_transforms grade=%s", grade)
                     return "useful"
-                else:
-                    print("DECISION: GENERATION DOES NOT ADDRESS QUESTION")
-                    return "not useful"
-        except:
-            # If grading fails, assume generation is useful to avoid infinite loops
-            print("DECISION: GRADING FAILED, ACCEPTING GENERATION")
+                logger.info("stage=route_generation decision=transform_query grade=%s", grade)
+                return "not useful"
+        except Exception:
+            logger.exception("stage=route_generation event=grading_failed decision=useful")
             return "useful"

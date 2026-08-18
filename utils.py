@@ -4,19 +4,25 @@ from langchain_core.output_parsers import StrOutputParser
 from binary_score_models import GradeAnswer,GradeDocuments,GradeHallucinations
 import os
 from dotenv import load_dotenv
+from logger import get_logger, log_stage
 load_dotenv()
 import json
 
+logger = get_logger(__name__)
+
 class Nodeoutputs:
     def __init__(self, api_key, model, prompts_file):
-        os.environ["NVIDIA_API_KEY"] = api_key
-        self.llm = ChatNVIDIA( api_key=api_key, model=model)
-        self.prompts = self.load_prompts(prompts_file)
-        self.setup_prompts()
+        with log_stage(logger, "automation_setup", model=model, prompts_file=prompts_file):
+            os.environ["NVIDIA_API_KEY"] = api_key
+            self.llm = ChatNVIDIA(api_key=api_key, model=model)
+            self.prompts = self.load_prompts(prompts_file)
+            self.setup_prompts()
 
     def load_prompts(self, prompts_file):
         with open(prompts_file, 'r') as file:
-            return json.load(file)
+            prompts = json.load(file)
+        logger.info("stage=load_prompts event=complete prompt_count=%d", len(prompts))
+        return prompts
 
     def setup_prompts(self):
         self.prompt = ChatPromptTemplate.from_messages(
